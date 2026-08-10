@@ -3,7 +3,7 @@ import pdfplumber
 import pandas as pd
 from pathlib import Path
 
-folder_path = Path(r"C:\Users\JoséRiquelme\codigos\Catalogador-Enem\PDFs")
+folder_path = Path(r"C:\Users\JoséRiquelme\codigos\processamento-linguagem-natural-enem\PDFs")
 
 pdf_archives = [str(file) for file in folder_path.glob("*.pdf")]
 
@@ -68,6 +68,8 @@ def classify_area(id_number):
 
 def extract_questions_from_pdf(path):
     complete_text = ""
+    file_name = Path(path).stem  
+
     with pdfplumber.open(path) as pdf:
         for page in pdf.pages:
             content = extract_page_text(page)
@@ -86,11 +88,19 @@ def extract_questions_from_pdf(path):
 
         match_num = re.search(r"\d+", title)
         if match_num:
-            id_number = int(match_num.group())
-            area = classify_area(id_number)
+            num_questao = int(match_num.group())
+            area = classify_area(num_questao)
+
+            unique_id = f"{file_name}_{num_questao}"
 
             questions.append(
-                {"ID": id_number, "Questao": body, "Área": area}
+                {
+                    "ID_Unico": unique_id,
+                    "Arquivo": file_name,
+                    "Numero": num_questao,
+                    "Questao": body,
+                    "Área": area,
+                }
             )
 
     return questions
@@ -106,10 +116,9 @@ def process_notebooks(path_list):
 
     df = pd.DataFrame(all_questions)
 
-    # Remove duplicatas baseando-se no ID e ordena do 1 ao 180+
     df = (
         df.drop_duplicates(subset=["ID"], keep="first")
-        .sort_values("ID")
+        .sort_values(by=["Arquivo", "Numero"])
         .reset_index(drop=True)
     )
 
