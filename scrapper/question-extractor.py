@@ -3,7 +3,9 @@ import pdfplumber
 import pandas as pd
 from pathlib import Path
 
-folder_path = Path(r"C:\Users\JoséRiquelme\codigos\processamento-linguagem-natural-enem\PDFs")
+project_path = Path(__file__).resolve().parent.parent
+folder_path = project_path / "pdfs"
+output_path = project_path / "questions_data_set.csv"
 
 pdf_archives = [str(file) for file in folder_path.glob("*.pdf")]
 
@@ -29,6 +31,11 @@ def extract_page_text(page):
     top = height * 0.07
     bottom = height * 0.93
     mid_x = width / 2
+
+    # Alguns cadernos desenham o mesmo glifo duas vezes na mesma coordenada para
+    # simular negrito. Sem descartar as cópias, o marcador de alternativa sai
+    # duplicado no texto extraído ("AA", "BB", "CC", ...).
+    page = page.dedupe_chars()
 
     cropped_page = page.crop((0, top, width, bottom))
 
@@ -95,7 +102,7 @@ def extract_questions_from_pdf(path):
 
             questions.append(
                 {
-                    "ID_Unico": unique_id,
+                    "ID": unique_id,
                     "Arquivo": file_name,
                     "Numero": num_questao,
                     "Questao": body,
@@ -134,7 +141,7 @@ if __name__ == "__main__":
 
     # Exporta para CSV com aspas e ponto e vírgula
     df.to_csv(
-        "questions_data_set.csv",
+        output_path,
         index=False,
         sep=";",
         quoting=csv.QUOTE_ALL,
